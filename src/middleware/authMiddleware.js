@@ -13,7 +13,6 @@ const authenticateUser = (req, res, next) => {
     }
     req.user = user.id;
     next()
-
 }
 
 
