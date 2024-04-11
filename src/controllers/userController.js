@@ -45,3 +45,9 @@ exports.loginUser = asyncErrorHandler(async function (req, res, next) {
 exports.testing = asyncErrorHandler(async function (req, res, next) {
     return res.status(200).json('Test successful')
 })
+
+exports.getUserDetail = asyncErrorHandler(async function (req, res, next) {
+    const user = req.user;
+    const userDetail = await userModel.findOne({ _id: user }).select("-password")
+    return res.status(200).json(userDetail)
+})

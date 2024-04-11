@@ -1,9 +1,9 @@
-const jsw = require('jsonwebtoken')
+const jwt = require('jsonwebtoken')
 const { ErrorHandlerClass } = require('express_centralized_error_handler')
 
 const authenticateUser = (req, res, next) => {
     const jwtToken = req.cookies.token;
-    if (!token) {
+    if (!jwtToken) {
         return next(new ErrorHandlerClass('Token is missing', 404))
     }
 
