@@ -1,53 +1,61 @@
 const { asyncErrorHandler, ErrorHandlerClass } = require('express_centralized_error_handler')
-const userModel = require("../models/usermodel");
 const jwtTokenGenerator = require("../utils/jswTokenGenerator");
+const reader = require('xlsx')
+const mammoth = require("mammoth");
+const { User } = require('../models/userModel');
+const jwt = require('jsonwebtoken')
+const Request = require("../models/requestModel")
+const { v4: uuidv4 } = require("uuid")
+const { JwtToken } = require("../models/userModel")
 
 exports.registerUser = asyncErrorHandler(async (req, res, next) => {
-    console.log(req)
-    const { email, userName, password } = req.body;
-
-    const user = await userModel.findOne({ email: email })
+    const { email, name, phone } = req.body;
+    await User.sync()
+    const user = await User.findOne({ where: { email } });
     if (user) {
-        next(new ErrorHandlerClass("User already exists", 409))
+        return next(new ErrorHandlerClass("User already exist", 409))
     }
-
-    const newUser = new userModel({
-        userName,
-        email,
-        password
-    })
-
-    const savedUser = await newUser.save()
-    return res.status(200).json(savedUser)
-
+    const newUser = await User.create({ userName: name, email: email, mobileNumber: phone })
+    return res.status(200).json({ message: "User created successfuly" })
 })
 
-exports.loginUser = asyncErrorHandler(async function (req, res, next) {
-    const { email, password } = req.body;
 
-    const user = await userModel.findOne({ email: email })
-
-    if (!user) {
-        return next(new ErrorHandlerClass("User not found", 404))
+//handle user login request
+exports.loginUser = asyncErrorHandler(async (req, res, next) => {
+    const { email } = req.body;
+    const isAuthenticatedUser = await User.findOne({ where: { email } })
+    if (!isAuthenticatedUser) {
+        return next(new ErrorHandlerClass("user not found", 404))
     }
-
-    const validUser = await user.validatePassword(password)
-
-    if (!validUser) {
-        return next(new ErrorHandlerClass("Invalid credentials", 401))
-    }
-
-    const jwtToken = await jwtTokenGenerator(user)
-    res.cookie('token', jwtToken, { maxAge: 24 * 60 * 60 * 1000 })
-    return res.status(200).json('User login successful')
+    const requestQueueToken = uuidv4()
+    await Request.sync()
+    const userInQueue = await Request.create({ userId: isAuthenticatedUser.id, requestStatus: 1, requestToken: requestQueueToken })
+    res.cookie('requestToken', requestQueueToken, { httpOnly: true })
+    return res.status(200).json({ message: "request successfully send to admin" })
 })
 
-exports.testing = asyncErrorHandler(async function (req, res, next) {
-    return res.status(200).json('Test successful')
-})
 
-exports.getUserDetail = asyncErrorHandler(async function (req, res, next) {
-    const user = req.user;
-    const userDetail = await userModel.findOne({ _id: user }).select("-password")
-    return res.status(200).json(userDetail)
+// handle query for request status from user
+exports.handleRequestQuery = asyncErrorHandler(async (req, res, next) => {
+    const requestToken = req.cookies.requestToken;
+    if (!requestToken) {
+        return next(new ErrorHandlerClass("request token not found", 404))
+    }
+    const request = await Request.findOne({ where: { requestToken: requestToken } })
+    if (request.requestStatus == 1) {
+        return res.status(200).json({ message: "Your request is still pending" })
+    } else if (request.requestStatus == 0) {
+        res.clearCookie("requestToken")
+        return res.status(200).send({ message: "Your request has been rejected" })
+    } else if (request.requestStatus == 2) {
+        const user = await User.findOne({ where: { id: requestToken.userId } })
+        const token = await jwtTokenGenerator(user)
+        const jwtToken = await JwtToken.create({
+            jwtToken: token,
+            userId: user.id
+        })
+        res.cookie('jwtToken', token, { httpOnly: true })
+        res.clearCookie("requestToken")
+        return res.status(200).json({ data: user })
+    }
 })

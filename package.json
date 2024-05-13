@@ -4,7 +4,7 @@
   "description": "A simple express boiler api  plate integrate with mongoose and error handling ",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "nodemon server.js"
   },
   "keywords": [
     "boilerplate",
@@ -17,10 +17,19 @@
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
     "express": "^4.19.2",
     "express_centralized_error_handler": "^1.0.1",
+    "express-session": "^1.18.0",
     "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.7.2",
     "mongoose": "^8.3.1",
-    "nodemon": "^3.1.0"
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.9.7",
+    "node-mysql": "^0.4.2",
+    "nodemon": "^3.1.0",
+    "sequelize": "^6.37.3",
+    "uuid": "^9.0.1",
+    "xlsx": "^0.18.5"
   }
 }

@@ -1,43 +1,59 @@
-const mongoose = require('mongoose')
-const Schema = require('mongoose').Schema
-const bcrypt = require('bcryptjs')
+const { Sequelize, DataTypes } = require("sequelize")
+const { sequelize } = require("../database/dbConnection")
 
-const userSchema = new Schema({
-    userName: {
-        type: String,
-        require: [true, "username must required"],
-        unique: [true, "username must unique"],
-        trim: true,
-        lowercase: true
-    },
-    email: {
-        type: String,
-        require: [true, "Email must required"],
-        unique: [true, "Email must unique"],
-        match: [/^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/, 'Please enter a valid email'],
-        lowercase: true
-    },
-    password: {
-        type: String,
-        required: [true, "password must required"]
+
+// Put this model into same file because loading problems of models when both are in separate file important for
+
+// User model
+const User = sequelize.define(
+    'registereduser',
+    {
+        id: {
+            type: DataTypes.INTEGER,
+            autoIncrement: true,
+            primaryKey: true,
+        },
+        userName: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            unique: true
+        },
+        email: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            unique: true
+        },
+        isAuthenticated: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false
+        },
+        mobileNumber: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            unique: true
+        }
+
     }
-})
+)
 
-userSchema.pre('save', async function (next) {
-    const user = this;
-    if (user.isModified('password')) {
-        user.password = await bcrypt.hash(user.password.toString(), 8)
+
+// JWT tokens model
+const JwtTokens = sequelize.define(
+    "Jwttokens",
+    {
+        id: {
+            type: DataTypes.INTEGER,
+            autoIncrement: true,
+            primaryKey: true,
+        },
+        jwtToken: {
+            type: DataTypes.STRING,
+            allowNull: false
+        }
     }
-    next()
-})
+)
 
-userSchema.method('validatePassword', async function (password) {
-    const isValid = await bcrypt.compare(password.toString(), this.password)
-    return isValid
-})
+User.hasMany(JwtTokens, { foreignKey: 'userId' })
+JwtTokens.belongsTo(User, { foreignKey: 'userId' })
 
-
-
-const UserModel = new mongoose.model("user", userSchema)
-
-module.exports = UserModel;
+module.exports = { User, JwtTokens };
